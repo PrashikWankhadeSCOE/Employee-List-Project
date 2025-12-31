@@ -1,74 +1,98 @@
 package com.example.employeeList.controller;
 
 import com.example.employeeList.dto.EmployeeDTO;
-import com.example.employeeList.service.EmployeeService;
+import com.example.employeeList.dto.ApiResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/employees")
 public class EmployeeController {
 
-    private final EmployeeService employeeService;
+    // 🔹 In-memory storage (acts like DB)
+    private final List<EmployeeDTO> employeeList = new ArrayList<>();
 
-    public EmployeeController(EmployeeService employeeService) {
-        this.employeeService = employeeService;
-    }
+    // 🔹 Auto-increment ID
+    private Long counter = 1L;
 
-    // CREATE
+    // ================= CREATE =================
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createEmployee(@Valid @RequestBody EmployeeDTO employeeDTO) {
-        EmployeeDTO saved = employeeService.createEmployee(employeeDTO);
-        return ResponseEntity.ok(
-                Map.of(
-                        "message", "Employee created successfully",
-                        "employee", saved
-                )
-        );
+    public ResponseEntity<ApiResponse<EmployeeDTO>> createEmployee(
+            @Valid @RequestBody EmployeeDTO employeeDTO) {
+
+        employeeDTO.setId(counter++);
+        employeeList.add(employeeDTO);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(true, "Employee created successfully", employeeDTO));
     }
 
-    // READ ALL
+    // ================= GET ALL =================
     @GetMapping
-    public List<EmployeeDTO> getAllEmployees() {
-        return employeeService.getAllEmployees();
+    public ResponseEntity<ApiResponse<List<EmployeeDTO>>> getAllEmployees() {
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, "Employees fetched successfully", employeeList)
+        );
     }
 
-    // READ BY ID
+    // ================= GET BY ID =================
     @GetMapping("/{id}")
-    public ResponseEntity<?> getEmployeeById(@PathVariable Long id) {
-        EmployeeDTO employee = employeeService.getEmployeeById(id);
-        if (employee == null) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<ApiResponse<EmployeeDTO>> getEmployeeById(@PathVariable Long id) {
+
+        for (EmployeeDTO emp : employeeList) {
+            if (emp.getId().equals(id)) {
+                return ResponseEntity.ok(
+                        new ApiResponse<>(true, "Employee fetched successfully", emp)
+                );
+            }
         }
-        return ResponseEntity.ok(employee);
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, "Employee not found", null));
     }
 
-    // UPDATE
+    // ================= UPDATE =================
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> updateEmployee(
-            @Valid
+    public ResponseEntity<ApiResponse<EmployeeDTO>> updateEmployee(
             @PathVariable Long id,
-            @RequestBody EmployeeDTO employeeDTO) {
+            @Valid @RequestBody EmployeeDTO updatedEmployee) {
 
-        EmployeeDTO updated = employeeService.updateEmployee(id, employeeDTO);
-        return ResponseEntity.ok(
-                Map.of(
-                        "message", "Employee updated successfully",
-                        "employee", updated
-                )
-        );
+        for (EmployeeDTO emp : employeeList) {
+            if (emp.getId().equals(id)) {
+
+                emp.setName(updatedEmployee.getName());
+                emp.setEmail(updatedEmployee.getEmail());
+                emp.setAccount(updatedEmployee.getAccount());
+                emp.setSalary(updatedEmployee.getSalary());
+
+                return ResponseEntity.ok(
+                        new ApiResponse<>(true, "Employee updated successfully", emp)
+                );
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, "Employee not found", null));
     }
 
-    // DELETE
+    // ================= DELETE =================
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteEmployee(@PathVariable Long id) {
-        employeeService.deleteEmployee(id);
-        return ResponseEntity.ok(
-                Map.of("message", "Employee deleted successfully")
-        );
+    public ResponseEntity<ApiResponse<String>> deleteEmployee(@PathVariable Long id) {
+
+        boolean removed = employeeList.removeIf(emp -> emp.getId().equals(id));
+
+        if (removed) {
+            return ResponseEntity.ok(
+                    new ApiResponse<>(true, "Employee deleted successfully", null)
+            );
+        }
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ApiResponse<>(false, "Employee not found", null));
     }
 }
