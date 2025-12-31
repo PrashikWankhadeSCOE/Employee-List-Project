@@ -2,6 +2,7 @@ package com.example.employeeList.controller;
 
 import com.example.employeeList.dto.EmployeeDTO;
 import com.example.employeeList.service.EmployeeService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,7 +21,7 @@ public class EmployeeController {
 
     // CREATE
     @PostMapping
-    public ResponseEntity<Map<String, Object>> createEmployee(@RequestBody EmployeeDTO employeeDTO) {
+    public ResponseEntity<Map<String, Object>> createEmployee(@Valid @RequestBody EmployeeDTO employeeDTO) {
         EmployeeDTO saved = employeeService.createEmployee(employeeDTO);
         return ResponseEntity.ok(
                 Map.of(
@@ -49,6 +50,7 @@ public class EmployeeController {
     // UPDATE
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> updateEmployee(
+            @Valid
             @PathVariable Long id,
             @RequestBody EmployeeDTO employeeDTO) {
 
