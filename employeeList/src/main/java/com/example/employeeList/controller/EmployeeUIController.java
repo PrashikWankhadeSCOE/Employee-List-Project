@@ -1,44 +1,40 @@
 package com.example.employeeList.controller;
 
-import com.example.employeeList.dto.EmployeeDTO;
+import com.example.employeeList.entity.Employee;
+import com.example.employeeList.repository.EmployeeRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Controller
 @RequestMapping("/ui/employees")
 public class EmployeeUIController {
 
-    // In-memory storage for UI (can be replaced with DB later)
-    private final List<EmployeeDTO> employeeList = new ArrayList<>();
+    private final EmployeeRepository repository;
 
-    // Auto-increment ID for UI entries
-    private final AtomicLong counter = new AtomicLong(1L);
+    public EmployeeUIController(EmployeeRepository repository) {
+        this.repository = repository;
+    }
 
     // ================= VIEW EMPLOYEES =================
     @GetMapping
     public String viewEmployees(Model model) {
-        model.addAttribute("employees", employeeList);
-        model.addAttribute("employee", new EmployeeDTO());
-        return "employees"; // Thymeleaf template: employees.html
+        model.addAttribute("employees", repository.findAll());
+        model.addAttribute("employee", new Employee());
+        return "employees";
     }
 
     // ================= ADD EMPLOYEE =================
     @PostMapping("/add")
-    public String addEmployee(@ModelAttribute EmployeeDTO employeeDTO) {
-        employeeDTO.setId(counter.getAndIncrement());
-        employeeList.add(employeeDTO);
+    public String addEmployee(@ModelAttribute Employee employee) {
+        repository.save(employee);
         return "redirect:/ui/employees";
     }
 
     // ================= DELETE EMPLOYEE =================
     @PostMapping("/delete/{id}")
     public String deleteEmployee(@PathVariable Long id) {
-        employeeList.removeIf(emp -> emp.getId().equals(id));
+        repository.deleteById(id);
         return "redirect:/ui/employees";
     }
 }

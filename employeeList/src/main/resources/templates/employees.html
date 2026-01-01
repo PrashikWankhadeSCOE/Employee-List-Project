@@ -1,19 +1,51 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Employee List</title>
+    <title>Employees</title>
 </head>
 <body>
+
+<h2>Add Employee</h2>
+
+<form th:action="@{/ui/employees/add}" th:object="${employee}" method="post">
+    First Name: <input type="text" th:field="*{firstName}" /><br/>
+    Last Name: <input type="text" th:field="*{lastName}" /><br/>
+    Email: <input type="email" th:field="*{email}" /><br/>
+    Phone:
+    <input type="text" th:field="*{phone}" /><br/>
+
+    Department:
+    <input type="text" th:field="*{department}" /><br/>
+
+    Designation:
+    <input type="text" th:field="*{designation}" /><br/>
+    Salary: <input type="number" step="0.01" th:field="*{salary}" /><br/>
+    <button type="submit">Add</button>
+</form>
+
+<hr/>
+
 <h2>Employee List</h2>
+
 <table border="1">
     <tr>
-        <th>ID</th><th>Name</th><th>Email</th><th>Account</th><th>Salary</th><th>Action</th>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Department</th>
+        <th>Designation</th>
+        <th>Salary</th>
+        <th>Action</th>
     </tr>
+
     <tr th:each="emp : ${employees}">
         <td th:text="${emp.id}"></td>
-        <td th:text="${emp.name}"></td>
+        <td th:text="${emp.firstName + ' ' + emp.lastName}"></td>
         <td th:text="${emp.email}"></td>
-        <td th:text="${emp.account}"></td>
+        <td th:text="${emp.phone}"></td>
+        <td th:text="${emp.department}"></td>
+        <td th:text="${emp.designation}"></td>
         <td th:text="${emp.salary}"></td>
         <td>
             <form th:action="@{/ui/employees/delete/{id}(id=${emp.id})}" method="post">
@@ -23,13 +55,5 @@
     </tr>
 </table>
 
-<h3>Add Employee</h3>
-<form th:action="@{/ui/employees/add}" method="post" th:object="${employee}">
-    <input type="text" th:field="*{name}" placeholder="Name" required/>
-    <input type="email" th:field="*{email}" placeholder="Email" required/>
-    <input type="text" th:field="*{account}" placeholder="Account"/>
-    <input type="number" th:field="*{salary}" placeholder="Salary"/>
-    <button type="submit">Add</button>
-</form>
 </body>
 </html>

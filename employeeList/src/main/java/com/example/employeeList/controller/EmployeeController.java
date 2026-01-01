@@ -2,6 +2,8 @@ package com.example.employeeList.controller;
 
 import com.example.employeeList.dto.EmployeeDTO;
 import com.example.employeeList.dto.ApiResponse;
+import com.example.employeeList.entity.Employee;
+import com.example.employeeList.repository.EmployeeRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,85 +16,66 @@ import java.util.List;
 @RequestMapping("/employees")
 public class EmployeeController {
 
-    // 🔹 In-memory storage (acts like DB)
-    private final List<EmployeeDTO> employeeList = new ArrayList<>();
+    private final EmployeeRepository repository;
 
-    // 🔹 Auto-increment ID
-    private Long counter = 1L;
-
-    // ================= CREATE =================
-    @PostMapping
-    public ResponseEntity<ApiResponse<EmployeeDTO>> createEmployee(
-            @Valid @RequestBody EmployeeDTO employeeDTO) {
-
-        employeeDTO.setId(counter++);
-        employeeList.add(employeeDTO);
-
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new ApiResponse<>(true, "Employee created successfully", employeeDTO));
+    public EmployeeController(EmployeeRepository repository) {
+        this.repository = repository;
     }
 
-    // ================= GET ALL =================
+    @PostMapping
+    public ResponseEntity<ApiResponse<Employee>> create(@RequestBody Employee employee) {
+        Employee saved = repository.save(employee);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(new ApiResponse<>(true, "Employee saved", saved));
+    }
+
     @GetMapping
-    public ResponseEntity<ApiResponse<List<EmployeeDTO>>> getAllEmployees() {
+    public ResponseEntity<ApiResponse<List<Employee>>> getAll() {
         return ResponseEntity.ok(
-                new ApiResponse<>(true, "Employees fetched successfully", employeeList)
+                new ApiResponse<>(true, "Employees fetched", repository.findAll())
         );
     }
 
-    // ================= GET BY ID =================
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<EmployeeDTO>> getEmployeeById(@PathVariable Long id) {
-
-        for (EmployeeDTO emp : employeeList) {
-            if (emp.getId().equals(id)) {
-                return ResponseEntity.ok(
-                        new ApiResponse<>(true, "Employee fetched successfully", emp)
-                );
-            }
-        }
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ApiResponse<>(false, "Employee not found", null));
+    public ResponseEntity<ApiResponse<Employee>> getById(@PathVariable Long id) {
+        return repository.findById(id)
+                .map(emp -> ResponseEntity.ok(new ApiResponse<>(true, "Found", emp)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ApiResponse<>(false, "Not found", null)));
     }
 
-    // ================= UPDATE =================
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<EmployeeDTO>> updateEmployee(
+    public ResponseEntity<ApiResponse<Employee>> update(
             @PathVariable Long id,
-            @Valid @RequestBody EmployeeDTO updatedEmployee) {
+            @Valid @RequestBody Employee updatedEmployee) {
 
-        for (EmployeeDTO emp : employeeList) {
-            if (emp.getId().equals(id)) {
+        return repository.findById(id)
+                .map(existing -> {
 
-                emp.setName(updatedEmployee.getName());
-                emp.setEmail(updatedEmployee.getEmail());
-                emp.setAccount(updatedEmployee.getAccount());
-                emp.setSalary(updatedEmployee.getSalary());
+                    existing.setFirstName(updatedEmployee.getFirstName());
+                    existing.setLastName(updatedEmployee.getLastName());
+                    existing.setEmail(updatedEmployee.getEmail());
+                    existing.setPhone(updatedEmployee.getPhone());
+                    existing.setDepartment(updatedEmployee.getDepartment());
+                    existing.setDesignation(updatedEmployee.getDesignation());
+                    existing.setDateOfJoining(updatedEmployee.getDateOfJoining());
+                    existing.setSalary(updatedEmployee.getSalary());
 
-                return ResponseEntity.ok(
-                        new ApiResponse<>(true, "Employee updated successfully", emp)
+                    Employee saved = repository.save(existing);
+
+                    return ResponseEntity.ok(
+                            new ApiResponse<>(true, "Employee updated", saved)
+                    );
+                })
+                .orElse(
+                        ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                .body(new ApiResponse<>(false, "Employee not found", null))
                 );
-            }
-        }
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ApiResponse<>(false, "Employee not found", null));
     }
 
-    // ================= DELETE =================
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<String>> deleteEmployee(@PathVariable Long id) {
-
-        boolean removed = employeeList.removeIf(emp -> emp.getId().equals(id));
-
-        if (removed) {
-            return ResponseEntity.ok(
-                    new ApiResponse<>(true, "Employee deleted successfully", null)
-            );
-        }
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ApiResponse<>(false, "Employee not found", null));
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        repository.deleteById(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Deleted", null));
     }
 }
